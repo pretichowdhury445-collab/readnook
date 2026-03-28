@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReadNook — Find Books You'll Actually Finish</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
+
+  <!-- Open Graph -->
+  <meta property="og:title"       content="ReadNook — Find Books You'll Actually Finish" />
+  <meta property="og:description" content="AI-powered book discovery. Describe a mood, pick a genre, get 9 reads curated just for you." />
+  <meta property="og:image"       content="https://readnook.netlify.app/og-image.png" />
+  <meta property="og:url"         content="https://readnook.netlify.app" />
+  <meta property="og:type"        content="website" />
+  <!-- Twitter -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="ReadNook — Find Books You'll Actually Finish" />
+  <meta name="twitter:description" content="AI-powered book discovery. Describe a mood, pick a genre, get 9 reads curated just for you." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:           #0d0d0d;
+      --bg2:          #111111;
+      --card:         #1a1a1a;
+      --border:       #2a2a2a;
+      --text:         #ffffff;
+      --muted:        #999999;
+      --accent:       #ff6b35;
+      --accent-hover: #ff8c5a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .fraunces { font-family: 'Fraunces', Georgia, serif; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      height: 64px;
+      background: var(--bg);
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+
+    .nav-logo {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    nav.menu-open .nav-hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    nav.menu-open .nav-hamburger span:nth-child(2) { opacity: 0; }
+    nav.menu-open .nav-hamburger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── HERO ── */
+    #hero {
+      height: 100vh;
+      min-height: 640px;
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 80px 1.5rem 2rem;
+    }
+
+    .hero-float-book {
+      position: absolute;
+      border-radius: 4px;
+      opacity: 0;
+      pointer-events: none;
+      filter: blur(2px);
+      transition: opacity 1.4s ease;
+      overflow: hidden;
+      width: 130px;
+    }
+
+    .hero-float-book img { display: block; width: 100%; height: auto; object-fit: cover; }
+    .hero-float-book.loaded { opacity: 0.1; }
+
+    .hero-float-book:nth-child(1) { top: 12%;    left: 3%;    transform: rotate(-8deg); }
+    .hero-float-book:nth-child(2) { top: 15%;    right: 4%;   transform: rotate(8deg);  }
+    .hero-float-book:nth-child(3) { bottom: 14%; left: 4%;    transform: rotate(6deg);  }
+    .hero-float-book:nth-child(4) { bottom: 12%; right: 3%;   transform: rotate(-7deg); }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      max-width: 720px;
+      width: 100%;
+    }
+
+    .hero-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+    }
+
+    h1.hero-headline {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-tagline {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 auto 2rem;
+      line-height: 1.65;
+    }
+
+    .mood-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .chip {
+      padding: 0.35rem 0.85rem;
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      font-family: inherit;
+    }
+
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(255,107,53,0.1); }
+
+    .search-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: stretch;
+    }
+
+    .search-row select,
+    .search-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      height: 48px;
+      padding: 0 1rem;
+      background: var(--card);
+      border: 1px solid #333;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    .search-row select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.2rem;
+      cursor: pointer;
+    }
+
+    .search-row select option { background: #1a1a1a; }
+    .search-row select:focus,
+    .search-row input[type="text"]:focus { border-color: var(--accent); }
+    .search-row input[type="text"]::placeholder { color: #555; }
+
+    .find-btn {
+      height: 48px;
+      padding: 0 1.4rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .find-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    .find-btn:active:not(:disabled) { transform: scale(0.98); }
+    .find-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .lucky-btn {
+      height: 48px;
+      padding: 0 1.2rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .lucky-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Empty state */
+    #empty-state {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: var(--accent);
+      text-align: left;
+      background: rgba(255,107,53,0.06);
+    }
+
+    /* ── SECTION SHARED ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-heading {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 0.4rem;
+    }
+
+    .section-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+
+    .section-inner {
+      max-width: 1100px;
+      margin-inline: auto;
+      padding-inline: 2rem;
+    }
+
+    /* ── LOADING STATE ── */
+    #loading-section {
+      display: none;
+      padding: 80px 0;
+      background: var(--bg);
+    }
+
+    .loading-msg-wrap { text-align: center; margin-bottom: 2.5rem; }
+
+    #loading-msg {
+      font-size: 1rem;
+      color: var(--muted);
+      transition: opacity 0.3s;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position: 600px 0; }
+    }
+
+    .skel {
+      background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
+      background-size: 1200px 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    .skeleton-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .skel-cover { width: 100%; height: 260px; border-radius: 0; }
+    .skel-body  { padding: 1rem; }
+    .skel-title { height: 14px; width: 75%; margin-bottom: 0.5rem; }
+    .skel-auth  { height: 11px; width: 45%; margin-bottom: 0.75rem; }
+    .skel-badge { height: 20px; width: 30%; }
+
+    /* ── RESULTS ── */
+    #results-section {
+      display: none;
+      padding: 80px 0;
+      background: var(--bg);
+    }
+
+    .results-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .copy-btn {
+      height: 36px;
+      padding: 0 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── BOOK GRID ── */
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .book-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      animation: rise 0.4s ease both;
+    }
+
+    .book-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 40px rgba(255,107,53,0.2);
+    }
+
+    .book-card:nth-child(1) { animation-delay: 0.00s; }
+    .book-card:nth-child(2) { animation-delay: 0.08s; }
+    .book-card:nth-child(3) { animation-delay: 0.16s; }
+    .book-card:nth-child(4) { animation-delay: 0.24s; }
+    .book-card:nth-child(5) { animation-delay: 0.32s; }
+    .book-card:nth-child(6) { animation-delay: 0.40s; }
+    .book-card:nth-child(7) { animation-delay: 0.48s; }
+    .book-card:nth-child(8) { animation-delay: 0.56s; }
+    .book-card:nth-child(9) { animation-delay: 0.64s; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-cover {
+      width: 100%;
+      height: 260px;
+      background: #111;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-cover img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    .card-cover-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card);
+    }
+
+    .card-cover-placeholder span {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 4rem;
+      font-weight: 900;
+      color: var(--accent);
+      opacity: 0.5;
+    }
+
+    .card-body { padding: 1rem; }
+
+    .card-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 0.2rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-author { font-size: 14px; color: var(--muted); margin-bottom: 0.65rem; }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 20px;
+      padding: 0.2rem 0.6rem;
+      background: #2a2a2a;
+      color: var(--muted);
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 0.2rem 0.6rem;
+      background: #2a2a2a;
+      color: var(--accent);
+    }
+
+    /* ── CONFETTI ── */
+    @keyframes confetti-fly {
+      0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--tx),var(--ty)) rotate(var(--rot)); opacity: 0; }
+    }
+
+    /* ── MODAL ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    #modal-overlay.open { display: flex; animation: fadein 0.2s ease; }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+    #modal {
+      background: var(--card);
+      border-radius: 20px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      animation: modalslide 0.24s ease;
+    }
+
+    @keyframes modalslide {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .modal-cover {
+      width: 100%;
+      height: 300px;
+      background: #111;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-cover img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    .modal-cover-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-cover-placeholder span {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 6rem;
+      font-weight: 900;
+      color: var(--accent);
+      opacity: 0.3;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      border: none;
+      color: var(--text);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      z-index: 2;
+    }
+
+    .modal-close:hover { background: #3a3a3a; }
+
+    .modal-body { padding: 1.75rem; }
+
+    .modal-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.3rem;
+    }
+
+    .modal-author { font-size: 0.9rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+    .modal-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-synopsis, .modal-why-text {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
+
+    .modal-find-btn {
+      display: block;
+      width: 100%;
+      padding: 0.9rem;
+      background: var(--accent);
+      color: #000;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+
+    .modal-find-btn:hover { background: var(--accent-hover); }
+
+    /* ── HOW IT WORKS ── */
+    #how-it-works {
+      padding: 100px 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+    }
+
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-top: 3rem;
+    }
+
+    .how-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .how-num {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .how-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+    .how-desc  { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* ── MONTHLY PICKS ── */
+    #monthly-picks {
+      padding: 100px 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── ABOUT ── */
+    #about {
+      padding: 100px 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+    }
+
+    .about-inner { max-width: 600px; }
+
+    .about-text { font-size: 18px; color: var(--muted); line-height: 1.8; margin-bottom: 2rem; }
+
+    .about-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    .btn-outline {
+      height: 44px;
+      padding: 0 1.25rem;
+      background: transparent;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.15s;
+    }
+
+    .btn-outline:hover { border-color: var(--muted); color: var(--text); }
+
+    .btn-filled {
+      height: 44px;
+      padding: 0 1.25rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 0.875rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background 0.15s;
+    }
+
+    .btn-filled:hover { background: var(--accent-hover); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0a0a0a;
+      border-top: 1px solid var(--card);
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+
+    .footer-links a { font-size: 0.8rem; color: var(--accent); text-decoration: none; transition: opacity 0.15s; }
+    .footer-links a:hover { opacity: 0.75; }
+    .footer-links span { font-size: 0.8rem; color: #555; }
+    .footer-dot { width: 3px; height: 3px; border-radius: 50%; background: #333; }
+
+    /* ── FLOATING BUTTONS ── */
+    #search-again-btn {
+      display: none;
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 400;
+      padding: 12px 20px;
+      background: var(--accent);
+      color: #000;
+      font-size: 0.875rem;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(255,107,53,0.4);
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    #search-again-btn:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+    /* ── TOAST ── */
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      background: var(--accent);
+      color: #000;
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      z-index: 600;
+      white-space: nowrap;
+    }
+
+    @keyframes toast-in  { from { transform: translateX(-50%) translateY(20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+    @keyframes toast-out { from { opacity: 1; } to { opacity: 0; } }
+
+    /* ── SCROLL FADE ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .fade-up.visible { opacity: 1; transform: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .book-grid { grid-template-columns: repeat(2, 1fr); }
+      .how-steps { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px; left: 0; right: 0;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        gap: 0;
+        padding: 0.5rem 0;
+        z-index: 999;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links li { width: 100%; }
+      .nav-links a { display: block; padding: 0.75rem 1.25rem; }
+      .nav-hamburger { display: flex; }
+
+      h1.hero-headline { font-size: 40px; }
+      .hero-tagline { font-size: 1rem; }
+      #hero { padding: 80px 1rem 2rem; }
+      .hero-float-book:nth-child(3),
+      .hero-float-book:nth-child(4) { display: none; }
+      .hero-float-book:nth-child(1),
+      .hero-float-book:nth-child(2) { width: 80px; }
+
+      .mood-chips { gap: 0.35rem; }
+      .chip { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+
+      .search-row { flex-direction: column; }
+      .find-btn, .lucky-btn { width: 100%; justify-content: center; text-align: center; }
+
+      .book-grid { grid-template-columns: 1fr; }
+      .how-steps { grid-template-columns: 1fr; }
+
+      .section-inner { padding-inline: 1rem; }
+      #how-it-works, #monthly-picks, #about { padding: 60px 0; }
+
+      #modal-overlay { padding: 0; align-items: flex-end; }
+      #modal { max-width: 100%; border-radius: 20px 20px 0 0; max-height: 95vh; }
+
+      #search-again-btn { bottom: 1rem; right: 1rem; font-size: 0.8rem; }
+
+      .results-header { flex-direction: column; gap: 0.75rem; }
+      .section-heading { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="main-nav">
+    <a class="nav-logo" href="/">📚 ReadNook</a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="https://pretichowdhury.netlify.app" target="_blank" rel="noopener">Made by Preti</a></li>
+    </ul>
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div id="hero-bg">
+      <div class="hero-float-book" id="hfb1"><img alt="" /></div>
+      <div class="hero-float-book" id="hfb2"><img alt="" /></div>
+      <div class="hero-float-book" id="hfb3"><img alt="" /></div>
+      <div class="hero-float-book" id="hfb4"><img alt="" /></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-label">AI-Powered Book Discovery</div>
+      <h1 class="hero-headline">Find books you'll<br>actually finish.</h1>
+      <p class="hero-tagline">Describe a mood, pick a genre, or name an author — get 9 reads curated by AI.</p>
+
+      <div class="mood-chips" id="mood-chips">
+        <button class="chip" data-mood="dark">Dark</button>
+        <button class="chip" data-mood="cozy">Cozy</button>
+        <button class="chip" data-mood="mind-bending">Mind-bending</button>
+        <button class="chip" data-mood="funny">Funny</button>
+        <button class="chip" data-mood="romantic">Romantic</button>
+        <button class="chip" data-mood="suspenseful">Suspenseful</button>
+        <button class="chip" data-mood="inspiring">Inspiring</button>
+        <button class="chip" data-mood="historical">Historical</button>
+        <button class="chip" data-mood="heartbreaking">Heartbreaking</button>
+        <button class="chip" data-mood="thrilling">Thrilling</button>
+      </div>
+
+      <div class="search-row">
+        <select id="genre">
+          <option value="">Any genre</option>
+          <option>Fiction</option><option>Non-fiction</option><option>Mystery</option>
+          <option>Thriller</option><option>Sci-Fi</option><option>Fantasy</option>
+          <option>Romance</option><option>Historical Fiction</option><option>Biography</option>
+          <option>Self-help</option><option>Health &amp; Wellness</option><option>Psychology</option>
+          <option>True Crime</option><option>Horror</option><option>Humor</option>
+          <option>Literary Fiction</option><option>Young Adult</option><option>Memoir</option>
+          <option>Business</option><option>Science &amp; Nature</option>
+        </select>
+        <input type="text" id="query" placeholder="mood, author, or theme…" />
+        <button class="find-btn" id="find-btn">Find my next read →</button>
+        <button class="lucky-btn" id="lucky-btn">✨ Feeling Lucky</button>
+      </div>
+
+      <div id="empty-state">Tell us something! Pick a genre, tap a mood chip, or describe what you're feeling — even "something cozy for a rainy day" works 🌧️</div>
+    </div>
+  </section>
+
+  <!-- LOADING -->
+  <section id="loading-section">
+    <div class="section-inner">
+      <div class="loading-msg-wrap"><span id="loading-msg">Consulting the AI librarian…</span></div>
+      <div class="book-grid" id="skeleton-grid"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results-section">
+    <div class="section-inner">
+      <div class="results-header">
+        <div>
+          <div class="section-heading">Your recommendations</div>
+          <div class="section-sub" id="results-sub"></div>
+        </div>
+        <button class="copy-btn" id="copy-btn">Copy list 📋</button>
+      </div>
+      <div class="book-grid" id="books-grid"></div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div class="section-inner">
+      <div class="fade-up">
+        <div class="section-label">How it works</div>
+        <div class="section-heading">Three steps to your next read</div>
+      </div>
+      <div class="how-steps">
+        <div class="how-card fade-up">
+          <div class="how-num">1</div>
+          <div class="how-title">Describe your mood</div>
+          <p class="how-desc">Pick a genre, tap a mood chip, or type a vibe, author, or theme. Even a feeling works.</p>
+        </div>
+        <div class="how-card fade-up">
+          <div class="how-num">2</div>
+          <div class="how-title">AI curates your list</div>
+          <p class="how-desc">Claude AI reads your input and handpicks 9 books perfectly matched to your exact taste.</p>
+        </div>
+        <div class="how-card fade-up">
+          <div class="how-num">3</div>
+          <div class="how-title">Find your next read</div>
+          <p class="how-desc">Tap any card for the full synopsis and a direct link to find the book online.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MONTHLY PICKS -->
+  <section id="monthly-picks">
+    <div class="section-inner">
+      <div class="fade-up">
+        <div class="section-label" id="picks-label">Monthly Picks</div>
+        <div class="section-heading">Books we're loving right now</div>
+        <p class="section-sub">My favorite reads this month, hand-picked for you.</p>
+      </div>
+      <div class="book-grid fade-up" id="picks-grid"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="section-inner">
+      <div class="about-inner fade-up">
+        <div class="section-heading">About ReadNook</div>
+        <p class="about-text">ReadNook is an AI-powered book discovery tool built by Preti Chowdhury. It uses Claude AI to match readers with books based on mood, genre, and personal taste. No algorithms, no bestseller lists — just thoughtful recommendations tailored to you.</p>
+        <div class="about-btns">
+          <a class="btn-outline" href="https://github.com/pretichowdhury" target="_blank" rel="noopener">View on GitHub</a>
+          <a class="btn-filled" href="https://pretichowdhury.netlify.app" target="_blank" rel="noopener">pretichowdhury.netlify.app</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://pretichowdhury.netlify.app" target="_blank" rel="noopener">Built by Preti Chowdhury</a>
+      <div class="footer-dot"></div>
+      <span>Powered by Claude AI</span>
+      <div class="footer-dot"></div>
+      <span>© 2026</span>
+    </div>
+  </footer>
+
+  <!-- MODAL -->
+  <div id="modal-overlay" role="dialog" aria-modal="true">
+    <div id="modal">
+      <div class="modal-cover" id="modal-cover">
+        <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-title"  id="modal-title"></div>
+        <div class="modal-author" id="modal-author"></div>
+        <div class="modal-label">Synopsis</div>
+        <p class="modal-synopsis" id="modal-synopsis"></p>
+        <div class="modal-label">Why it matches</div>
+        <p class="modal-why-text" id="modal-why"></p>
+        <div class="modal-meta" id="modal-meta"></div>
+        <a class="modal-find-btn" id="modal-link" href="#" target="_blank" rel="noopener">Find this book →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING -->
+  <button id="search-again-btn">🔍 Search again</button>
+  <div id="toast"></div>
+
+  <script>
+    /* ── DOM ── */
+    const genreEl     = document.getElementById('genre');
+    const queryEl     = document.getElementById('query');
+    const findBtn     = document.getElementById('find-btn');
+    const luckyBtn    = document.getElementById('lucky-btn');
+    const errorEl     = document.getElementById('empty-state');
+    const loadingSec  = document.getElementById('loading-section');
+    const resultsSec  = document.getElementById('results-section');
+    const gridEl      = document.getElementById('books-grid');
+    const skelGrid    = document.getElementById('skeleton-grid');
+    const resultsSub  = document.getElementById('results-sub');
+    const overlay     = document.getElementById('modal-overlay');
+    const searchAgain = document.getElementById('search-again-btn');
+
+    /* ── COVER FETCH ── */
+    async function fetchCover(title, author) {
+      try {
+        const p   = new URLSearchParams({ title, author: author || '' });
+        const res = await fetch(`/api/cover?${p}`);
+        const d   = await res.json();
+        return d.cover_id ? `https://covers.openlibrary.org/b/id/${d.cover_id}-M.jpg` : null;
+      } catch { return null; }
+    }
+
+    /* ── READING TIME ── */
+    function readTime(pages) {
+      const h = Math.round((pages || 300) / 60);
+      return h < 1 ? '< 1 hr read' : `~${h} hrs read`;
+    }
+
+    /* ── HERO FLOATING COVERS ── */
+    const heroBooks = [
+      { title: '1984',                 author: 'George Orwell'    },
+      { title: 'Dune',                 author: 'Frank Herbert'    },
+      { title: 'Pride and Prejudice',  author: 'Jane Austen'      },
+      { title: 'Brave New World',      author: 'Aldous Huxley'    },
+    ];
+
+    heroBooks.forEach(async ({ title, author }, i) => {
+      const el  = document.getElementById(`hfb${i + 1}`);
+      if (!el) return;
+      const url = await fetchCover(title, author);
+      if (url) {
+        const img = el.querySelector('img');
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        img.onload = () => el.classList.add('loaded');
+      }
+    });
+
+    /* ── MOOD CHIPS ── */
+    document.getElementById('mood-chips').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      const mood    = chip.dataset.mood;
+      const isNowOn = chip.classList.toggle('active');
+
+      let words = queryEl.value.split(',').map(w => w.trim()).filter(Boolean);
+      if (isNowOn) {
+        if (!words.includes(mood)) words.push(mood);
+      } else {
+        words = words.filter(w => w !== mood);
+      }
+      queryEl.value = words.join(', ');
+    });
+
+    queryEl.addEventListener('input', () => {
+      document.querySelectorAll('.chip').forEach(c => {
+        c.classList.toggle('active', queryEl.value.toLowerCase().includes(c.dataset.mood));
+      });
+    });
+
+    queryEl.addEventListener('keydown', e => { if (e.key === 'Enter') findBtn.click(); });
+
+    /* ── FEELING LUCKY ── */
+    luckyBtn.addEventListener('click', () => {
+      const genres = Array.from(genreEl.options).filter(o => o.value);
+      const chips  = Array.from(document.querySelectorAll('.chip'));
+
+      const rg = genres[Math.floor(Math.random() * genres.length)];
+      genreEl.value = rg.value;
+
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      const rc = chips[Math.floor(Math.random() * chips.length)];
+      rc.classList.add('active');
+      queryEl.value = rc.dataset.mood;
+
+      setTimeout(() => findBtn.click(), 600);
+    });
+
+    /* ── BOOK DATA ── */
+    let books  = [];
+    let covers = [];
+
+    /* ── LOADING MESSAGES ── */
+    const MSGS = [
+      'Consulting the AI librarian…',
+      'Scanning 10,000 shelves…',
+      'Almost there, picking the best ones…',
+      'Matching books to your vibe…',
+      'Dusting off some hidden gems…',
+      'Your perfect reads are almost ready…',
+    ];
+    let msgTimer  = null;
+    let msgIdx    = 0;
+
+    function startMsgs() {
+      const el = document.getElementById('loading-msg');
+      msgIdx = 0; el.textContent = MSGS[0];
+      msgTimer = setInterval(() => { msgIdx = (msgIdx + 1) % MSGS.length; el.textContent = MSGS[msgIdx]; }, 1500);
+    }
+
+    function stopMsgs() { clearInterval(msgTimer); }
+
+    /* ── SKELETONS ── */
+    function skelCard() {
+      return `<div class="skeleton-card">
+        <div class="skel skel-cover"></div>
+        <div class="skel-body">
+          <div class="skel skel-title"></div>
+          <div class="skel skel-auth"></div>
+          <div class="skel skel-badge"></div>
+        </div>
+      </div>`;
+    }
+
+    /* ── SEARCH ── */
+    findBtn.addEventListener('click', async () => {
+      const genre = genreEl.value;
+      const topic = queryEl.value.trim();
+
+      errorEl.style.display = 'none';
+
+      if (!genre && !topic) {
+        errorEl.style.display = 'block';
+        errorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+
+      /* show loading */
+      findBtn.disabled     = true;
+      findBtn.textContent  = 'Finding…';
+      resultsSec.style.display = 'none';
+      searchAgain.style.display = 'none';
+      skelGrid.innerHTML   = Array(9).fill(skelCard()).join('');
+      loadingSec.style.display = 'block';
+      loadingSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      startMsgs();
+
+      try {
+        const res  = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ genre, topic }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+
+        books = data?.books;
+        if (!Array.isArray(books) || !books.length) throw new Error('No books returned — please try again.');
+
+        covers = await Promise.all(books.map(b => fetchCover(b.title, b.author)));
+
+        stopMsgs();
+        loadingSec.style.display = 'none';
+        renderBooks();
+        fireConfetti();
+      } catch (err) {
+        stopMsgs();
+        loadingSec.style.display = 'none';
+        errorEl.textContent  = err.message || 'Something went wrong. Please try again.';
+        errorEl.style.display = 'block';
+      } finally {
+        findBtn.disabled    = false;
+        findBtn.textContent = 'Find my next read →';
+      }
+    });
+
+    /* ── RENDER BOOKS ── */
+    function coverHTML(url, title, cls = 'card-cover') {
+      if (url) return `<div class="${cls}"><img src="${url}" alt="${esc(title)}" crossorigin="anonymous" loading="lazy" /></div>`;
+      return `<div class="${cls}"><div class="card-cover-placeholder"><span>${esc((title || '?')[0].toUpperCase())}</span></div></div>`;
+    }
+
+    function renderBooks() {
+      gridEl.innerHTML = '';
+      resultsSub.textContent = `${books.length} books matched your search`;
+
+      books.forEach((b, i) => {
+        const tags = (b.genres || []).slice(0, 3).map(g => `<span class="tag">${esc(g)}</span>`).join('');
+        const rt   = readTime(b.estimated_pages);
+
+        const card = document.createElement('article');
+        card.className = 'book-card';
+        card.innerHTML = `
+          ${coverHTML(covers[i], b.title)}
+          <div class="card-body">
+            <div class="card-title">${esc(b.title)}</div>
+            <div class="card-author">${esc(b.author)}</div>
+            <div class="card-meta">
+              <span class="badge">${esc(rt)}</span>
+              ${tags}
+            </div>
+          </div>`;
+        card.addEventListener('click', () => openModal(i));
+        gridEl.appendChild(card);
+      });
+
+      resultsSec.style.display = 'block';
+      searchAgain.style.display = 'block';
+      resultsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ── COPY LIST ── */
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      if (!books.length) return;
+      const text = books.map((b, i) => `${i + 1}. ${b.title} by ${b.author}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard ✓'));
+    });
+
+    /* ── CONFETTI ── */
+    function fireConfetti() {
+      const colors = ['#ff6b35', '#ffffff', '#ffcc00', '#ff4444'];
+      const cx     = window.innerWidth / 2;
+
+      for (let i = 0; i < 30; i++) {
+        const p     = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const tx    = (Math.random() - 0.5) * 500;
+        const ty    = -(120 + Math.random() * 320);
+        const rot   = (Math.random() * 720) - 360;
+        const delay = Math.random() * 0.25;
+
+        p.style.cssText = `
+          position:fixed; left:${cx}px; bottom:0;
+          width:${4 + Math.random() * 7}px; height:${6 + Math.random() * 10}px;
+          background:${color}; border-radius:2px;
+          pointer-events:none; z-index:9999;
+          animation:confetti-fly 1.2s ease-out ${delay}s forwards;`;
+        p.style.setProperty('--tx', `${tx}px`);
+        p.style.setProperty('--ty', `${ty}px`);
+        p.style.setProperty('--rot', `${rot}deg`);
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1800);
+      }
+    }
+
+    /* ── MODAL ── */
+    function openModal(i) {
+      const b        = books[i];
+      const coverEl  = document.getElementById('modal-cover');
+
+      coverEl.querySelector('img')?.remove();
+      coverEl.querySelector('.modal-cover-placeholder')?.remove();
+
+      if (covers[i]) {
+        const img = document.createElement('img');
+        img.src = covers[i]; img.alt = b.title; img.crossOrigin = 'anonymous';
+        coverEl.insertBefore(img, coverEl.firstChild);
+      } else {
+        const fb = document.createElement('div');
+        fb.className = 'modal-cover-placeholder';
+        fb.innerHTML = `<span>${esc((b.title || '?')[0].toUpperCase())}</span>`;
+        coverEl.insertBefore(fb, coverEl.firstChild);
+      }
+
+      const q = encodeURIComponent(`${b.title} ${b.author}`);
+      document.getElementById('modal-title').textContent    = b.title;
+      document.getElementById('modal-author').textContent   = b.author;
+      document.getElementById('modal-synopsis').textContent = b.synopsis;
+      document.getElementById('modal-why').textContent      = b.why_it_matches;
+      document.getElementById('modal-link').href            = `https://books.google.com/books?q=${q}`;
+
+      const meta = document.getElementById('modal-meta');
+      meta.innerHTML = `<span class="badge">${esc(readTime(b.estimated_pages))}</span>` +
+        (b.genres || []).map(g => `<span class="tag">${esc(g)}</span>`).join('');
+
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    /* ── SEARCH AGAIN ── */
+    searchAgain.addEventListener('click', () => {
+      resultsSec.style.display = 'none';
+      searchAgain.style.display = 'none';
+      gridEl.innerHTML = '';
+      books = []; covers = [];
+      document.getElementById('hero').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    /* ── MONTHLY PICKS ── */
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    const monthlyPicks = [
+      /* Jan */ [
+        { title: 'Lessons in Chemistry',     author: 'Bonnie Garmus',           desc: 'A female chemist in the 1960s becomes an accidental cooking show host.' },
+        { title: 'The Midnight Library',     author: 'Matt Haig',               desc: 'A library between life and death holds every unlived life.' },
+        { title: 'Klara and the Sun',        author: 'Kazuo Ishiguro',          desc: 'An Artificial Friend waits in a shop window, watching the human world.' },
+      ],
+      /* Feb */ [
+        { title: 'Happy Place',              author: 'Emily Henry',             desc: 'Two exes must pretend to still be together on their annual friends trip.' },
+        { title: 'Book Lovers',              author: 'Emily Henry',             desc: 'A literary agent and editor keep running into each other in a small town.' },
+        { title: 'People We Meet on Vacation', author: 'Emily Henry',           desc: 'Two best friends, an annual summer trip, and the moment everything changed.' },
+      ],
+      /* Mar */ [
+        { title: 'Tomorrow and Tomorrow and Tomorrow', author: 'Gabrielle Zevin', desc: 'Two friends make video games across thirty years — it\'s about love, work, and loss.' },
+        { title: 'The Covenant of Water',    author: 'Abraham Verghese',        desc: 'A South Indian family over three generations, bound by water and its wounds.' },
+        { title: 'Happy Place',              author: 'Emily Henry',             desc: 'Two exes must pretend to still be together on their annual friends trip.' },
+      ],
+      /* Apr */ [
+        { title: 'Fourth Wing',              author: 'Rebecca Yarros',          desc: 'A young woman enters a war college for dragon riders and falls for the enemy.' },
+        { title: 'Iron Flame',               author: 'Rebecca Yarros',          desc: 'The sequel — alliances shatter and the war for survival grows desperate.' },
+        { title: 'The Women',                author: 'Kristin Hannah',          desc: 'A young nurse in Vietnam comes home to a country that doesn\'t want to know.' },
+      ],
+      /* May */ [
+        { title: 'Demon Copperhead',         author: 'Barbara Kingsolver',      desc: 'David Copperfield reimagined as a boy in the opioid-ravaged Appalachian South.' },
+        { title: 'James',                    author: 'Percival Everett',        desc: 'Huck Finn retold from Jim\'s perspective — devastating and darkly funny.' },
+        { title: 'Intermezzo',               author: 'Sally Rooney',            desc: 'Two grieving brothers and the women who interrupt their quiet devastation.' },
+      ],
+      /* Jun */ [
+        { title: 'Holly',                    author: 'Stephen King',            desc: 'Holly Gibney investigates a series of disappearances with disturbing secrets.' },
+        { title: 'All Fours',                author: 'Miranda July',            desc: 'A woman pulls off the freeway midway through a road trip — and stays.' },
+        { title: 'Orbital',                  author: 'Samantha Harvey',         desc: 'Six astronauts orbit Earth for 24 hours as the world turns below them.' },
+      ],
+      /* Jul */ [
+        { title: 'Babel',                    author: 'R.F. Kuang',              desc: 'Oxford\'s Royal Institute of Translation fuels the British Empire — at a cost.' },
+        { title: 'The Atlas Six',            author: 'Olivie Blake',            desc: 'Six magicians compete for a secret society membership — only five will survive.' },
+        { title: 'Nona the Ninth',           author: 'Tamsyn Muir',             desc: 'A girl with no memory and a sword faces a dying universe alongside her family.' },
+      ],
+      /* Aug */ [
+        { title: 'The Wishing Game',         author: 'Meg Shaffer',             desc: 'A beloved children\'s author runs a contest — the prize is his entire world.' },
+        { title: 'Remarkably Bright Creatures', author: 'Shelby Van Pelt',     desc: 'A giant Pacific octopus helps solve the mystery of a woman\'s missing son.' },
+        { title: 'The House in the Cerulean Sea', author: 'TJ Klune',          desc: 'A caseworker inspects a magical orphanage and finds a family he never expected.' },
+      ],
+      /* Sep */ [
+        { title: 'Chain-Gang All-Stars',     author: 'Nana Kwame Adjei-Brenyah', desc: 'Prisoners fight to the death for the chance at freedom in near-future America.' },
+        { title: 'The God of the Woods',     author: 'Lauren Fox',              desc: 'A girl goes missing from summer camp — and it\'s happened before.' },
+        { title: 'All the Sinners Bleed',    author: 'S.A. Cosby',              desc: 'A Black sheriff in rural Virginia hunts a killer with deep roots in the community.' },
+      ],
+      /* Oct */ [
+        { title: 'Starter Villain',          author: 'John Scalzi',             desc: 'A man inherits his uncle\'s supervillain empire — and it\'s surprisingly corporate.' },
+        { title: 'System Collapse',          author: 'Martha Wells',            desc: 'Murderbot must save colonists while dealing with its own deteriorating system.' },
+        { title: 'The Familiar',             author: 'Leigh Bardugo',           desc: 'A servant girl in the Spanish Inquisition makes a dangerous bargain with a demon.' },
+      ],
+      /* Nov */ [
+        { title: 'The Women',                author: 'Kristin Hannah',          desc: 'A young nurse in Vietnam comes home to a country that doesn\'t want to know.' },
+        { title: 'James',                    author: 'Percival Everett',        desc: 'Huck Finn retold from Jim\'s perspective — devastating and darkly funny.' },
+        { title: 'Intermezzo',               author: 'Sally Rooney',            desc: 'Two grieving brothers and the women who interrupt their quiet devastation.' },
+      ],
+      /* Dec */ [
+        { title: 'Wellness',                 author: 'Nathan Hill',             desc: 'A Chicago couple\'s marriage unravels alongside the wellness industry they love.' },
+        { title: 'The Cliffs',               author: 'J. Courtney Sullivan',    desc: 'A woman renovating a seaside cottage discovers layers of secrets in its walls.' },
+        { title: 'Same as It Ever Was',      author: 'Claire Lombardo',         desc: 'A woman looks back on a life of small choices and wonders what they mean.' },
+      ],
+    ];
+
+    (async () => {
+      const month  = new Date().getMonth();
+      const picks  = monthlyPicks[month];
+      const grid   = document.getElementById('picks-grid');
+      const label  = document.getElementById('picks-label');
+      if (label) label.textContent = `${MONTH_NAMES[month]} Picks`;
+
+      const pcvrs = await Promise.all(picks.map(b => fetchCover(b.title, b.author)));
+
+      picks.forEach((b, i) => {
+        const card = document.createElement('div');
+        card.className = 'book-card';
+        card.style.cursor = 'default';
+        card.innerHTML = `
+          ${coverHTML(pcvrs[i], b.title)}
+          <div class="card-body">
+            <div class="card-title">${esc(b.title)}</div>
+            <div class="card-author">${esc(b.author)}</div>
+            <p style="font-size:0.8rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">${esc(b.desc)}</p>
+          </div>`;
+        grid.appendChild(card);
+      });
+    })();
+
+    /* ── NAV HAMBURGER ── */
+    const mainNav   = document.getElementById('main-nav');
+    const navLinks  = document.getElementById('nav-links');
+    const hamburger = document.getElementById('nav-hamburger');
+
+    hamburger.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      mainNav.classList.toggle('menu-open', open);
+    });
+
+    navLinks.querySelectorAll('a').forEach(a =>
+      a.addEventListener('click', () => { navLinks.classList.remove('open'); mainNav.classList.remove('menu-open'); })
+    );
+
+    /* ── SCROLL ANIMATIONS ── */
+    const fadeObs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); fadeObs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => fadeObs.observe(el));
+
+    /* ── TOAST ── */
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      t.style.animation = 'toast-in 0.3s ease forwards';
+      setTimeout(() => {
+        t.style.animation = 'toast-out 0.4s ease forwards';
+        setTimeout(() => { t.style.display = 'none'; }, 400);
+      }, 2000);
+    }
+
+    /* ── ESC ── */
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+  </script>
+</body>
+</html>
